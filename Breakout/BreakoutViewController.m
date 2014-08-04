@@ -32,8 +32,6 @@
 @property NSMutableArray *blockViewsArray;
 @property NSMutableArray *lifeViewsArray;
 
-@property BOOL willDestroyBlock;
-
 @end
 
 @implementation BreakoutViewController
@@ -41,7 +39,7 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
-    [self setBehaviors];
+    [self setUpBehaviors];
     [self setUpLifeViews];
 
     CGPoint saveCenter = self.ballView.center;
@@ -58,7 +56,7 @@
     self.dynamicBehaviorArray = [@[self.paddleView] mutableCopy];
 }
 
--(void)setBehaviors
+-(void)setUpBehaviors
 {
     self.dynamicAnimator = [[UIDynamicAnimator alloc] initWithReferenceView:self.view];
 
@@ -100,9 +98,9 @@
 
 -(void)setUpBlockViews
 {
-    for (int y = 1; y < self.numberOfRows + 1; y++)
+    for (int y =0; y < self.numberOfRows; y++)
     {
-        for (int x = 1; x < 9; x++)
+        for (int x = 0; x < 1; x++)
         {
             CGRect frame = CGRectMake (x * 32, 4 + (y * 12), 30.0, 10.0);
             self.blockView = [[BlockView alloc] initWithFrame:frame];
@@ -122,7 +120,7 @@
 -(void)setUpLifeViews
 {
     self.lifeViewsArray = [[NSMutableArray alloc] init];
-    for (int x = 1; x < 4; x++)
+    for (int x = 0; x < 3; x++)
     {
         CGRect frame = CGRectMake (x * 22, 555, 20.0, 10.0);
         LifeView *lifeView = [[LifeView alloc] initWithFrame:frame];
@@ -165,10 +163,29 @@
     return YES;
 }
 
--(void)showRestartMessage
+-(BOOL)youLose
+{
+    if (self.lifeViewsArray.count != 0) {
+        return NO;
+    }
+    return YES;
+}
+
+
+-(void)showYouWinAlert
 {
     UIAlertView *alertview = [[UIAlertView alloc] init];
     alertview.title = @"You Win";
+    alertview.delegate = self;
+    [alertview addButtonWithTitle:@"Play Again"];
+    [alertview show];
+
+}
+
+-(void)showYouLoseAlert
+{
+    UIAlertView *alertview = [[UIAlertView alloc] init];
+    alertview.title = @"You Lose";
     alertview.delegate = self;
     [alertview addButtonWithTitle:@"Play Again"];
     [alertview show];
@@ -182,11 +199,14 @@
   withBoundaryIdentifier:(id<NSCopying>)identifier atPoint:(CGPoint)p
 {
     if (p.y > 566) {
-        NSLog(@"%f", p.y);
+        //NSLog(@"%f", p.y);
         [self returnBall];
         UIView *view = self.lifeViewsArray.lastObject;
         [self.lifeViewsArray removeLastObject];
         [view removeFromSuperview];
+    }
+    if ([self youLose]) {
+        [self showYouLoseAlert];
     }
 }
 
@@ -196,26 +216,30 @@
                  atPoint:(CGPoint)p
 {
     //NSLog(@"item1:%@, item2:%@", item1, item2);
-    self.willDestroyBlock = arc4random() % 3;
+    BOOL canDestroyBlock = arc4random() % 3;
     if (behavior == self.collisionBehavior) {
-        if (self.willDestroyBlock == 0) {
+        if (canDestroyBlock == 0) {
+            if ([(UIView *)item2 isKindOfClass:[BlockView class]]) {
+                item2.backgroundColor = [UIColor orangeColor];
+            }
             return;
         }
         else {
-            if ([item2 isKindOfClass:[BlockView class]]) {
+            if ([(UIView *)item2 isKindOfClass:[BlockView class]]) {
+                item2.backgroundColor = [UIColor redColor];
                 [UIView animateWithDuration:0.25 animations:^(void) {
                     item2.alpha = 1;
                     item2.alpha = 0;
                 } completion:^(BOOL finished) {
-                    [(UIView *)item2 removeFromSuperview];
+                    [item2 removeFromSuperview];
                     [behavior removeItem:item2];
                 }];
             }
         }
-        BOOL shouldStartAgain = [self shouldStartAgain];
-        if (shouldStartAgain) {
-            [self showRestartMessage];
-        }
+    }
+    BOOL shouldStartAgain = [self shouldStartAgain];
+    if (shouldStartAgain) {
+        [self showYouWinAlert];
     }
 }
 
@@ -226,7 +250,7 @@ willDismissWithButtonIndex:(NSInteger)buttonIndex
 {
     //[self.delegate alertView:self willDismissWithButtonIndex:0];
     [self returnBall];
-    [self setBehaviors];
+    [self setUpBehaviors];
 }
 
 @end
